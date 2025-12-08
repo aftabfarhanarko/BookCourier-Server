@@ -96,6 +96,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/limetCard", async (req,res) => {
+      const result = await bookCollections.find().sort({creatAt: 1}).limit(6).toArray();
+      res.send(result)
+    })
+
     // Customer Order
     app.post("/ordernow", async (req, res) => {
       const trakingId = generateTrackingId();
@@ -160,12 +165,11 @@ async function run() {
       res.send({ url: session.url });
     });
 
-
     app.patch("/success-payment", async (req,res) => {
       const {sessionId} = req.query;
       console.log(sessionId);
       const testSession = await stripe.checkout.sessions.retrieve({
-        
+
       })
       
     })
