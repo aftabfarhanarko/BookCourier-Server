@@ -36,11 +36,7 @@ async function run() {
     });
 
     app.get("/allbooks", async (req, res) => {
-      const { one, tow,limit, skip,search,sortnow } = req.query;
-      console.log(search, );
-  
-
-
+      const { one, tow, limit, skip, search } = req.query;
 
 
       const query = {
@@ -48,6 +44,9 @@ async function run() {
         availability_status: tow,
       };
 
+      if (search) {
+        query.title = { $regex: search, $options: "i" };
+      }
       const result = await bookCollections
         .find(query)
         .project({
@@ -60,13 +59,11 @@ async function run() {
         })
         .limit(Number(limit))
         .skip(Number(skip))
-        .sort()
         .toArray();
 
-        const counts = await bookCollections.countDocuments(query);
-        console.log(counts);
-        
-      res.status(200).send({result,counts});
+      const counts = await bookCollections.countDocuments(query);
+
+      res.status(200).send({ result, counts });
     });
 
     // Send a ping to confirm a successful connection
