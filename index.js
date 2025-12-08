@@ -38,7 +38,6 @@ async function run() {
     app.get("/allbooks", async (req, res) => {
       const { one, tow, limit, skip, search } = req.query;
 
-
       const query = {
         publisher: one,
         availability_status: tow,
@@ -56,6 +55,11 @@ async function run() {
           author: 1,
           language: 1,
           category: 1,
+          publisher: 1,
+          return_policy: 1,
+          weight: 1,
+          page_count: 1,
+          rating_avg: 1,
         })
         .limit(Number(limit))
         .skip(Number(skip))
@@ -64,6 +68,23 @@ async function run() {
       const counts = await bookCollections.countDocuments(query);
 
       res.status(200).send({ result, counts });
+    });
+
+    app.get("/oneBooks/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await bookCollections.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+      console.log(id);
+    });
+
+    app.get("/catogryfinde", async (req, res) => {
+      const { category } = req.query;
+      console.log(category);
+
+      const result = await bookCollections
+        .find({ category: category })
+        .toArray();
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
