@@ -22,8 +22,20 @@ const client = new MongoClient(process.env.MONGODB_URI, {
 
 async function run() {
   try {
+     const myDb = client.db("bookCourier");
+     const bookCollections = myDb.collection("allBook")
 
+     
+     app.post("/book", async (req, res) => {
+        const data = req.body;
+        const result = await bookCollections.insertOne(data);
+        res.status(200).send(result)
+     })
 
+     app.get("/allbooks", async (req,res) => {
+        const result = await bookCollections.find().toArray();
+        res.status(200).send(result)
+     })
 
     // Send a ping to confirm a successful connection
     console.log(
