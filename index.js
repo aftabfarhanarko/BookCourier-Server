@@ -25,9 +25,12 @@ async function run() {
      const myDb = client.db("bookCourier");
      const bookCollections = myDb.collection("allBook")
 
-     
+    //  ALl Libery Books Reletaed Rpis
      app.post("/book", async (req, res) => {
         const data = req.body;
+        data.creatAt = new Date().toISOString();
+        console.log(data);
+        
         const result = await bookCollections.insertOne(data);
         res.status(200).send(result)
      })
