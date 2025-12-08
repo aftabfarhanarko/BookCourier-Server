@@ -1,16 +1,24 @@
 import "dotenv/config";
 import express from "express";
+import Stripe from "stripe";
 import cors from "cors";
+import crypto from "crypto";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
+
 const port = Number(process.env.START_PORT) || 5000;
 
 app.use(express.json());
 app.use(cors());
 
-app.get("/", (req, res) => {
-  res.send("Hello World start Book Library Server");
-});
+function generateTrackingId() {
+  const prefix = "PRCL";
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const random = crypto.randomBytes(4).toString("hex").toUpperCase();
+
+  return `${prefix}-${date}-${random}`;
+}
 
 const client = new MongoClient(process.env.MONGODB_URI, {
   serverApi: {
@@ -90,27 +98,76 @@ async function run() {
 
     // Customer Order
     app.post("/ordernow", async (req, res) => {
+      const trakingId = generateTrackingId();
       const data = req.body;
       data.ordered_Status = "pending";
-      data.payment_status = "unpaid" 
+      data.payment_status = "unpaid";
+      data.trakingId = trakingId;
       data.orderTime = new Date().toISOString();
 
       const result = await orderCollections.insertOne(data);
-      res.send(result)
+      res.send(result);
     });
 
-    app.get("/orderlist", async (req,res) => {
-      const {email} = req.query;
+    app.get("/orderlist", async (req, res) => {
+      const { email } = req.query;
       console.log(email);
-      
-      const result = await orderCollections.find({email:email}).toArray();
-      res.send(result)
-    })
 
-    app.delete("/deletbook/:id", async (req,res) => {
-      const {id} = req.params;
-      const result = await orderCollections.deleteOne({_id: new ObjectId(id)});
-      res.send(result)
+      const result = await orderCollections.find({ email: email }).toArray();
+      res.send(result);
+    });
+
+    app.delete("/deletbook/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await orderCollections.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+    // Payment Releted Api Creat
+    app.post("/creat-payment-session", async (req, res) => {
+      const pymentInfo = req.body;
+      console.log(pymentInfo);
+
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: pymentInfo?.bookTitle,
+                images: [pymentInfo?.bookImage],
+              },
+              unit_amount: Number(pymentInfo?.bookPrice) * 100,
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: pymentInfo?.customerEmail,
+        mode: "payment",
+        metadata: {
+          bookId: pymentInfo?.bookID,
+          email: pymentInfo?.customerEmail,
+          trakingId: pymentInfo?.trakingId,
+          amount: pymentInfo?.bookPrice,
+        },
+
+        success_url: `${process.env.URL}/deshbord/pymentSuccess?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.URL}/deshbord/userorder`,
+      });
+
+      res.send({ url: session.url });
+    });
+
+
+    app.patch("/success-payment", async (req,res) => {
+      const {sessionId} = req.query;
+      console.log(sessionId);
+      const testSession = await stripe.checkout.sessions.retrieve({
+        
+      })
+      
     })
 
     // Send a ping to confirm a successful connection
