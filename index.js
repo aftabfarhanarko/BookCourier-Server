@@ -24,6 +24,7 @@ async function run() {
   try {
     const myDb = client.db("bookCourier");
     const bookCollections = myDb.collection("allBook");
+    const orderCollections = myDb.collection("customerOrder");
 
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
@@ -86,6 +87,31 @@ async function run() {
         .toArray();
       res.send(result);
     });
+
+    // Customer Order
+    app.post("/ordernow", async (req, res) => {
+      const data = req.body;
+      data.ordered_Status = "pending";
+      data.payment_status = "unpaid" 
+      data.orderTime = new Date().toISOString();
+
+      const result = await orderCollections.insertOne(data);
+      res.send(result)
+    });
+
+    app.get("/orderlist", async (req,res) => {
+      const {email} = req.query;
+      console.log(email);
+      
+      const result = await orderCollections.find({email:email}).toArray();
+      res.send(result)
+    })
+
+    app.delete("/deletbook/:id", async (req,res) => {
+      const {id} = req.params;
+      const result = await orderCollections.deleteOne({_id: new ObjectId(id)});
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     console.log(
