@@ -106,6 +106,27 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/liberin-add-books", async (req,res) => {
+      const {email} = req.query;
+      const query = {"sellerInfo.sellerEmail": email}
+      const result = await bookCollections.find(query).toArray();
+      res.send(result)
+    })
+
+    app.delete("/deletLiberyanBooks/:id", async (req,res) => {
+      const {id} = req.params;
+      const result = await bookCollections.deleteOne({_id: new ObjectId(id)})
+      res.send(result);
+    })
+
+    app.get("/allcustomer-order", async (req,res) => {
+      const result = await orderCollections.find().toArray();
+      res.send(result)
+    })
+
+
+
+
     // Customer Order
     app.post("/ordernow", async (req, res) => {
       const trakingId = generateTrackingId();
