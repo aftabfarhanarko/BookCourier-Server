@@ -3,6 +3,7 @@ import express from "express";
 import Stripe from "stripe";
 import cors from "cors";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
@@ -107,12 +108,12 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/liberin-add-books", async (req,res) => {
-      const {email} = req.query;
-      const query = {"sellerInfo.sellerEmail": email}
+    app.get("/liberin-add-books", async (req, res) => {
+      const { email } = req.query;
+      const query = { "sellerInfo.sellerEmail": email };
       const result = await bookCollections.find(query).toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     // app.delete("/deletLiberyanBooks/:id", async (req,res) => {
     //   const {id} = req.params;
@@ -120,32 +121,30 @@ async function run() {
     //   res.send(result);
     // })
 
-    app.get("/allcustomer-order", async (req,res) => {
+    app.get("/allcustomer-order", async (req, res) => {
       const result = await orderCollections.find().toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
-    app.patch("/updetOrder/:id", async (req,res) => {
-      const {id} = req.params;
-      const {status} = req.query;
-      if(status === "delivered"){
+    app.patch("/updetOrder/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.query;
+      if (status === "delivered") {
         const orderDelivery = new Date().toISOString();
-        // const resultnew = await 
+        // const resultnew = await
       }
       const seter = {
-        $set:{
-          ordered_Status: status
-        }
-      }
-      const result = await orderCollections.updateOne({_id: new ObjectId(id)}, seter);
-      console.log(seter,id);
+        $set: {
+          ordered_Status: status,
+        },
+      };
+      const result = await orderCollections.updateOne(
+        { _id: new ObjectId(id) },
+        seter
+      );
+      console.log(seter, id);
       res.send(result);
-      
-    })
-
-
-
-
+    });
 
     // Customer Order
     app.post("/ordernow", async (req, res) => {
@@ -164,7 +163,10 @@ async function run() {
       const { email } = req.query;
       console.log(email);
 
-      const result = await orderCollections.find({ email: email }).sort({orderTime: 1}).toArray();
+      const result = await orderCollections
+        .find({ email: email })
+        .sort({ orderTime: 1 })
+        .toArray();
       res.send(result);
     });
 
@@ -176,10 +178,27 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/ucustomer", async (req,res) => {
+    app.post("/ucustomer", async (req, res) => {
+      const { email, displayName, photoURL, password } = req.body;
+      const isExgiesed = await customerCollections.findOne({ email: email });
+      if (isExgiesed) {
+        return res.send({
+          messsage: "All Ready User Data Saved Data Base",
+          isExgiesed,
+        });
+      }
+      const hashPassword = await bcrypt.hash(password, 10);
+      const result = await customerCollections.insertOne({
+        email,
+        displayName,
+        photoURL,
+        hashPassword,
+        role: "user",
+        crestAt: new Date().toISOString(),
+      });
 
-    })
-
+      res.send(result);
+    });
 
     // Payment Releted Api Creat
     app.post("/creat-payment-session", async (req, res) => {
@@ -281,13 +300,15 @@ async function run() {
       }
     });
 
-    app.get("/paymentChack", async (req,res) => {
-      const {email} = req.query;
+    app.get("/paymentChack", async (req, res) => {
+      const { email } = req.query;
       // console.log(email);
-      
-      const result = await paymentCollections.find({customerEmail: email}).toArray();
-      res.send(result)
-    })
+
+      const result = await paymentCollections
+        .find({ customerEmail: email })
+        .toArray();
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     console.log(
