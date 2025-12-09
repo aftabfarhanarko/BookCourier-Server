@@ -76,6 +76,16 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/loginRealTimerUser", async (req, res) => {
+      const { email } = req.query;
+      // console.log(email);
+      
+      const result = await customerCollections.findOne({ email: email });
+      // console.log(result);
+      
+      res.send(result);
+    });
+
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
       const data = req.body;
