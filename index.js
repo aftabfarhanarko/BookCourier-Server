@@ -37,6 +37,15 @@ async function run() {
     const paymentCollections = myDb.collection("allpayment");
     const customerCollections = myDb.collection("customerData");
 
+    // Role Api
+    app.get("/role-findnow", async (req, res) => {
+      const { email } = req.query;
+      const result = await customerCollections.findOne({ email: email });
+      // console.log(result.role);
+
+      res.send(result.role);
+    });
+
     // Admin Releted Api
     app.get("/alluser-data", async (req, res) => {
       const result = await customerCollections.find().toArray();
@@ -79,10 +88,10 @@ async function run() {
     app.get("/loginRealTimerUser", async (req, res) => {
       const { email } = req.query;
       // console.log(email);
-      
+
       const result = await customerCollections.findOne({ email: email });
       // console.log(result);
-      
+
       res.send(result);
     });
 
