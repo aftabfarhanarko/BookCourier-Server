@@ -170,7 +170,6 @@ async function run() {
 
       res.send({ url: session.url });
     });
-
     app.patch("/success-payment", async (req, res) => {
       const { sessionID } = req.query;
       console.log(sessionID);
@@ -235,6 +234,14 @@ async function run() {
         }
       }
     });
+
+    app.get("/paymentChack", async (req,res) => {
+      const {email} = req.query;
+      // console.log(email);
+      
+      const result = await paymentCollections.find({customerEmail: email}).toArray();
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     console.log(
