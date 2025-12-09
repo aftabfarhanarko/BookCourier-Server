@@ -37,6 +37,12 @@ async function run() {
     const paymentCollections = myDb.collection("allpayment");
     const customerCollections = myDb.collection("customerData");
 
+    // Admin Releted Api
+    app.get("/alluser-data", async (req, res) => {
+      const result = await customerCollections.find().toArray();
+      res.send(result);
+    });
+
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
       const data = req.body;
@@ -196,6 +202,7 @@ async function run() {
         role: "user",
         crestAt: new Date().toISOString(),
       });
+      console.log(email, password, displayName, photoURL);
 
       res.send(result);
     });
