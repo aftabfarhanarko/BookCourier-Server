@@ -124,6 +124,21 @@ async function run() {
       res.send(result)
     })
 
+    app.patch("/updetOrder/:id", async (req,res) => {
+      const {id} = req.params;
+      const {status} = req.query;
+      const seter = {
+        $set:{
+          ordered_Status: status
+        }
+      }
+      const result = await orderCollections.updateOne({_id: new ObjectId(id)}, seter);
+      console.log(seter,id);
+      res.send(result);
+      
+    })
+
+
 
 
 
@@ -155,6 +170,7 @@ async function run() {
       });
       res.send(result);
     });
+
 
     // Payment Releted Api Creat
     app.post("/creat-payment-session", async (req, res) => {
