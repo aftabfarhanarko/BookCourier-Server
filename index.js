@@ -42,6 +42,28 @@ async function run() {
       const result = await customerCollections.find().toArray();
       res.send(result);
     });
+    // .(`userDelete/${id}
+    app.delete("/userDelete/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await customerCollections.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+    app.patch("/ubdetRoles/:id", async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      const result = await customerCollections.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: { role },
+        }
+      );
+
+      res.send(result);
+    });
 
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
@@ -121,12 +143,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.delete("/deletLiberyanBooks/:id", async (req,res) => {
-    //   const {id} = req.params;
-    //   const result = await bookCollections.deleteOne({_id: new ObjectId(id)})
-    //   res.send(result);
-    // })
-
     app.get("/allcustomer-order", async (req, res) => {
       const result = await orderCollections.find().toArray();
       res.send(result);
@@ -202,7 +218,7 @@ async function run() {
         role: "user",
         crestAt: new Date().toISOString(),
       });
-      console.log(email, password, displayName, photoURL);
+      // console.log(email, password, displayName, photoURL);
 
       res.send(result);
     });
