@@ -65,6 +65,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/allbooks", async (req, res) => {
+      const result = await bookCollections.find().toArray();
+      res.send(result);
+    });
+
+    app.delete("/deletLiberyanBooks/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await bookCollections.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
       const data = req.body;
