@@ -34,6 +34,7 @@ async function run() {
     const bookCollections = myDb.collection("allBook");
     const orderCollections = myDb.collection("customerOrder");
     const paymentCollections = myDb.collection("allpayment");
+    const customerCollections = myDb.collection("customerData");
 
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
@@ -113,11 +114,11 @@ async function run() {
       res.send(result)
     })
 
-    app.delete("/deletLiberyanBooks/:id", async (req,res) => {
-      const {id} = req.params;
-      const result = await bookCollections.deleteOne({_id: new ObjectId(id)})
-      res.send(result);
-    })
+    // app.delete("/deletLiberyanBooks/:id", async (req,res) => {
+    //   const {id} = req.params;
+    //   const result = await bookCollections.deleteOne({_id: new ObjectId(id)})
+    //   res.send(result);
+    // })
 
     app.get("/allcustomer-order", async (req,res) => {
       const result = await orderCollections.find().toArray();
@@ -127,6 +128,10 @@ async function run() {
     app.patch("/updetOrder/:id", async (req,res) => {
       const {id} = req.params;
       const {status} = req.query;
+      if(status === "delivered"){
+        const orderDelivery = new Date().toISOString();
+        // const resultnew = await 
+      }
       const seter = {
         $set:{
           ordered_Status: status
@@ -159,7 +164,7 @@ async function run() {
       const { email } = req.query;
       console.log(email);
 
-      const result = await orderCollections.find({ email: email }).toArray();
+      const result = await orderCollections.find({ email: email }).sort({orderTime: 1}).toArray();
       res.send(result);
     });
 
@@ -170,6 +175,10 @@ async function run() {
       });
       res.send(result);
     });
+
+    app.post("/ucustomer", async (req,res) => {
+
+    })
 
 
     // Payment Releted Api Creat
