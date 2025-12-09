@@ -33,6 +33,7 @@ async function run() {
     const myDb = client.db("bookCourier");
     const bookCollections = myDb.collection("allBook");
     const orderCollections = myDb.collection("customerOrder");
+    const paymentCollections = myDb.collection("allpayment");
 
     //  ALl Libery Books Reletaed Rpis
     app.post("/book", async (req, res) => {
@@ -96,10 +97,14 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/limetCard", async (req,res) => {
-      const result = await bookCollections.find().sort({creatAt: 1}).limit(6).toArray();
-      res.send(result)
-    })
+    app.get("/limetCard", async (req, res) => {
+      const result = await bookCollections
+        .find()
+        .sort({ creatAt: 1 })
+        .limit(6)
+        .toArray();
+      res.send(result);
+    });
 
     // Customer Order
     app.post("/ordernow", async (req, res) => {
@@ -152,6 +157,7 @@ async function run() {
         customer_email: pymentInfo?.customerEmail,
         mode: "payment",
         metadata: {
+          bookName: pymentInfo?.bookTitle,
           bookId: pymentInfo?.bookID,
           email: pymentInfo?.customerEmail,
           trakingId: pymentInfo?.trakingId,
@@ -165,14 +171,70 @@ async function run() {
       res.send({ url: session.url });
     });
 
-    app.patch("/success-payment", async (req,res) => {
-      const {sessionId} = req.query;
-      console.log(sessionId);
-      const testSession = await stripe.checkout.sessions.retrieve({
+    app.patch("/success-payment", async (req, res) => {
+      const { sessionID } = req.query;
+      console.log(sessionID);
+      const seccion = await stripe.checkout.sessions.retrieve(sessionID);
+      console.log(seccion);
+      if (seccion.payment_status) {
+        const trakingId = seccion.metadata.trakingId;
 
-      })
-      
-    })
+        const transactionId = seccion.payment_intent;
+        const query2 = { transactionId: transactionId };
+
+        const isExgisted = await paymentCollections.findOne(query2);
+        if (isExgisted) {
+          return res.send({
+            messsage: "All Ready Payment Successfully",
+            trakingId,
+            transactionId,
+            amount: seccion.amount_total / 100,
+            email: seccion.customer_email,
+            method: seccion.payment_method_types?.[0] || "card",
+          });
+        }
+
+        const id = seccion.metadata.bookId;
+        const seter = {
+          $set: {
+            payment_status: "paid",
+          },
+        };
+
+        const updetOrderCollections = await orderCollections.updateOne(
+          { _id: new ObjectId(id) },
+          seter
+        );
+
+        const paymentSuccessInfo = {
+          amount: seccion.amount_total / 100,
+          currency: seccion.currency,
+          customerEmail: seccion.customer_email,
+          bookId: seccion.metadata.bookId,
+          bookName: seccion.metadata.bookName,
+          transactionId: seccion.payment_intent,
+          paymentStatus: seccion.payment_status,
+          paidAt: new Date(),
+          trakingId: trakingId,
+        };
+
+        if (seccion.payment_status === "paid") {
+          const result = await paymentCollections.insertOne(paymentSuccessInfo);
+          console.log(result);
+
+          res.send({
+            modifyBook: result,
+            paymentInfo: paymentSuccessInfo,
+            trakingId: trakingId,
+            transactionId: seccion.payment_intent,
+            amount: seccion.amount_total / 100,
+            email: seccion.customer_email,
+            method: seccion.payment_method_types?.[0] || "card",
+            success: true,
+          });
+        }
+      }
+    });
 
     // Send a ping to confirm a successful connection
     console.log(
