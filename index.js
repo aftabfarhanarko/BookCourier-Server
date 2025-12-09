@@ -4,14 +4,50 @@ import Stripe from "stripe";
 import cors from "cors";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import admin from "firebase-admin";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
-
 const port = Number(process.env.START_PORT) || 5000;
 
 app.use(express.json());
 app.use(cors());
+
+// Firebase Admin
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
+  "utf8"
+);
+const serviceAccount = JSON.parse(decoded);
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// Firebase MidelWear
+const verifeyFirebase = async (req, res, next) => {
+  const token = req.headers.authorization;
+  // console.log(token);
+  if (!token) {
+    return res.status(401).send({
+      messsage: "Unauthorized Access",
+    });
+  }
+
+  try {
+    const isTokens = token.split(' ')[1];
+    console.log(isTokens);
+    
+    const verifey = await admin.auth().verifyIdToken(isTokens);
+    // console.log(verifey);
+    
+    req.verifey_email = verifey?.email;
+    next();
+  } catch (err) {
+    return res.status(401).send({
+      message: "Unauthorized Access",
+      err,
+    });
+  }
+};
 
 function generateTrackingId() {
   const prefix = "PRCL";
@@ -166,14 +202,21 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/liberin-add-books", async (req, res) => {
+    app.get("/liberin-add-books", verifeyFirebase, async (req, res) => {
       const { email } = req.query;
+
+      if (email !== req.verify_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
+
       const query = { "sellerInfo.sellerEmail": email };
       const result = await bookCollections.find(query).toArray();
       res.send(result);
     });
 
-    app.get("/allcustomer-order", async (req, res) => {
+    app.get("/allcustomer-order", verifeyFirebase, async (req, res) => {
       const result = await orderCollections.find().toArray();
       res.send(result);
     });
