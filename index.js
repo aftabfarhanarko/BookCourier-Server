@@ -9,15 +9,16 @@ import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = Number(process.env.START_PORT) || 5000;
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
+  "utf8"
+);
+const serviceAccount = JSON.parse(decoded);
 
 app.use(express.json());
 app.use(cors());
 
 // Firebase Admin
-const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
-  "utf8"
-);
-const serviceAccount = JSON.parse(decoded);
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -25,20 +26,16 @@ admin.initializeApp({
 // Firebase MidelWear
 const verifeyFirebase = async (req, res, next) => {
   const token = req.headers.authorization;
-  // console.log(token);
   if (!token) {
     return res.status(401).send({
       messsage: "Unauthorized Access",
     });
   }
-
   try {
-    const isTokens = token.split(' ')[1];
-    console.log(isTokens);
-    
+    const isTokens = token.split(" ")[1];
+    // console.log(isTokens);
     const verifey = await admin.auth().verifyIdToken(isTokens);
-    // console.log(verifey);
-    
+    // console.log("Thise ios midelwear",verifey.email);
     req.verifey_email = verifey?.email;
     next();
   } catch (err) {
@@ -83,7 +80,15 @@ async function run() {
     });
 
     // Admin Releted Api
-    app.get("/alluser-data", async (req, res) => {
+    app.get("/alluser-data", verifeyFirebase, async (req, res) => {
+      const { email } = req.query;
+      console.log(email, req.verifey_email);
+
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
       const result = await customerCollections.find().toArray();
       res.send(result);
     });
@@ -110,7 +115,15 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/allbooks", async (req, res) => {
+    app.get("/allbooks", verifeyFirebase, async (req, res) => {
+      const { email } = req.query;
+      console.log(email, req.verifey_email);
+
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
       const result = await bookCollections.find().toArray();
       res.send(result);
     });
@@ -204,19 +217,26 @@ async function run() {
 
     app.get("/liberin-add-books", verifeyFirebase, async (req, res) => {
       const { email } = req.query;
+      // console.log("this is midel Wear EMail", req.verifey_email, email);
 
-      if (email !== req.verify_email) {
+      if (email !== req.verifey_email) {
         return res.status(403).send({
           message: "Forbident Access",
         });
       }
-
       const query = { "sellerInfo.sellerEmail": email };
       const result = await bookCollections.find(query).toArray();
       res.send(result);
     });
 
     app.get("/allcustomer-order", verifeyFirebase, async (req, res) => {
+      const { email } = req.query;
+      // console.log(email);
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
       const result = await orderCollections.find().toArray();
       res.send(result);
     });
@@ -254,9 +274,14 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/orderlist", async (req, res) => {
+    app.get("/orderlist", verifeyFirebase, async (req, res) => {
       const { email } = req.query;
-      console.log(email);
+      // console.log(email, req.verifey_email);
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
 
       const result = await orderCollections
         .find({ email: email })
@@ -396,10 +421,14 @@ async function run() {
       }
     });
 
-    app.get("/paymentChack", async (req, res) => {
+    app.get("/paymentChack", verifeyFirebase, async (req, res) => {
       const { email } = req.query;
       // console.log(email);
-
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
       const result = await paymentCollections
         .find({ customerEmail: email })
         .toArray();
