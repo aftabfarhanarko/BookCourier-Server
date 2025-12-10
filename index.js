@@ -70,6 +70,7 @@ async function run() {
     const paymentCollections = myDb.collection("allpayment");
     const customerCollections = myDb.collection("customerData");
     const reviewCustomerCollections = myDb.collection("reviewCustomer");
+    const whiseListCollections = myDb.collection("whiseListBook");
 
     // Role Api
     app.get("/role-findnow", async (req, res) => {
@@ -86,18 +87,60 @@ async function run() {
       const result = await reviewCustomerCollections.insertOne(data);
       res.send(result);
     });
-
-
-    app.get("/detliseBookReview/:id", async (req, res) => {
+    app.get("/detliseBookReview/:id", verifeyFirebase, async (req, res) => {
       const { id } = req.params;
-      console.log(id);
-      
+      const { email } = req.query;
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
+
       const result = await reviewCustomerCollections
         .find({ bookId: id })
         .toArray();
-        // console.log(result);
-        
       res.send(result);
+    });
+
+    // WhiseList Saved Data in Database
+    app.post("/whiseListerInfo", verifeyFirebase, async (req, res) => {
+      const { email, id } = req.query;
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
+      const data = req.body;
+      const query = { bookId: id };
+
+      const isExgiesed = await whiseListCollections.findOne(query);
+      console.log(isExgiesed);
+
+      if (isExgiesed) {
+        return res.send({
+          message: "Book Allready Saved your WhisList",
+        });
+      }
+
+      const result = await whiseListCollections.insertOne(data);
+      res.send(result);
+    });
+
+    // whisListdata?email=${user?.email
+    app.get("/whisListdata", async (req, res) => {
+      const { email, id } = req.query;
+
+      const checkBook = await whiseListCollections.findOne({ bookId: id });
+
+      const myEmail = { wishlisterEmail: email };
+      const counts = await whiseListCollections.countDocuments(myEmail);
+      const result = await whiseListCollections.find(myEmail).toArray();
+
+      res.send({
+        checkBookId: !!checkBook, 
+        counts,
+        result,
+      });
     });
 
     // Admin Releted Api
@@ -121,7 +164,7 @@ async function run() {
       const counts = await customerCollections.countDocuments();
       res.send({ result, counts });
     });
-    // .(`userDelete/${id}
+
     app.delete("/userDelete/:id", async (req, res) => {
       const { id } = req.params;
       const result = await customerCollections.deleteOne({
