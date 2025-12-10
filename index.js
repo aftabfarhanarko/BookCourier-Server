@@ -115,15 +115,15 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/allbooks", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
-      console.log(email, req.verifey_email);
+    app.get("/allbooks", async (req, res) => {
+      // const { email } = req.query;
+      // console.log(email, req.verifey_email);
 
-      if (email !== req.verifey_email) {
-        return res.status(403).send({
-          message: "Forbident Access",
-        });
-      }
+      // if (email !== req.verifey_email) {
+      //   return res.status(403).send({
+      //     message: "Forbident Access",
+      //   });
+      // }
       const result = await bookCollections.find().toArray();
       res.send(result);
     });
