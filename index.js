@@ -124,7 +124,7 @@ async function run() {
     });
 
     app.get("/allbooks", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
+      const { email, limit, skip } = req.query;
       console.log(email, req.verifey_email);
 
       if (email !== req.verifey_email) {
@@ -132,7 +132,11 @@ async function run() {
           message: "Forbident Access",
         });
       }
-      const result = await bookCollections.find().toArray();
+      const result = await bookCollections
+        .find()
+        .limit(Number(limit))
+        .skip(Number(skip))
+        .toArray();
       const counts = await bookCollections.countDocuments();
       res.send({ result, counts });
     });
@@ -140,7 +144,9 @@ async function run() {
     app.delete("/deletLiberyanBooks/:id", async (req, res) => {
       const { id } = req.params;
       const result = await bookCollections.deleteOne({ _id: new ObjectId(id) });
-      const result2 = await orderCollections.deleteOne({"book._id": new ObjectId(id)});
+      const result2 = await orderCollections.deleteOne({
+        "book._id": new ObjectId(id),
+      });
       res.send(result);
     });
 
@@ -151,6 +157,22 @@ async function run() {
       const result = await customerCollections.findOne({ email: email });
       // console.log(result);
 
+      res.send(result);
+    });
+
+    app.patch("/updeatAdminAcrions/:id", async (req, res) => {
+      const { id } = req.params;
+      const { publisher } = req.body;
+      const seter = {
+        $set: {
+          publisher: publisher,
+        },
+      };
+
+      const result = await bookCollections.updateOne(
+        { _id: new ObjectId(id) },
+        seter
+      );
       res.send(result);
     });
 
@@ -196,7 +218,7 @@ async function run() {
 
       const counts = await bookCollections.countDocuments(query);
       console.log(result);
-      
+
       res.status(200).send({ result, counts });
     });
 
@@ -254,11 +276,13 @@ async function run() {
         });
       }
       const result = await orderCollections
-        .find()
+        .find({ "book.sellerInfo.sellerEmail": email })
         .limit(Number(limit))
         .skip(Number(skip))
         .toArray();
-      const counts = await orderCollections.countDocuments();
+      const counts = await orderCollections.countDocuments({
+        "book.sellerInfo.sellerEmail": email,
+      });
       res.send({ result, counts });
     });
 
