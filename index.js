@@ -69,6 +69,7 @@ async function run() {
     const orderCollections = myDb.collection("customerOrder");
     const paymentCollections = myDb.collection("allpayment");
     const customerCollections = myDb.collection("customerData");
+    const reviewCustomerCollections = myDb.collection("reviewCustomer");
 
     // Role Api
     app.get("/role-findnow", async (req, res) => {
@@ -77,6 +78,26 @@ async function run() {
       // console.log(result.role);
 
       res.send(result.role);
+    });
+
+    // user review set Apis
+    app.post("/reviewUserNow", async (req, res) => {
+      const data = req.body;
+      const result = await reviewCustomerCollections.insertOne(data);
+      res.send(result);
+    });
+
+
+    app.get("/detliseBookReview/:id", async (req, res) => {
+      const { id } = req.params;
+      console.log(id);
+      
+      const result = await reviewCustomerCollections
+        .find({ bookId: id })
+        .toArray();
+        // console.log(result);
+        
+      res.send(result);
     });
 
     // Admin Releted Api
