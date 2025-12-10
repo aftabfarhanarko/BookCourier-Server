@@ -81,16 +81,24 @@ async function run() {
 
     // Admin Releted Api
     app.get("/alluser-data", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
-      console.log(email, req.verifey_email);
+      const { email, limit, skip } = req.query;
+      // console.log(email, req.verifey_email);
 
       if (email !== req.verifey_email) {
         return res.status(403).send({
           message: "Forbident Access",
         });
       }
-      const result = await customerCollections.find().toArray();
-      res.send(result);
+
+      console.log(limit, skip);
+
+      const result = await customerCollections
+        .find()
+        .limit(Number(limit))
+        .skip(Number(skip))
+        .toArray();
+      const counts = await customerCollections.countDocuments();
+      res.send({ result, counts });
     });
     // .(`userDelete/${id}
     app.delete("/userDelete/:id", async (req, res) => {
@@ -115,22 +123,24 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/allbooks", async (req, res) => {
-      // const { email } = req.query;
-      // console.log(email, req.verifey_email);
+    app.get("/allbooks", verifeyFirebase, async (req, res) => {
+      const { email } = req.query;
+      console.log(email, req.verifey_email);
 
-      // if (email !== req.verifey_email) {
-      //   return res.status(403).send({
-      //     message: "Forbident Access",
-      //   });
-      // }
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
       const result = await bookCollections.find().toArray();
-      res.send(result);
+      const counts = await bookCollections.countDocuments();
+      res.send({ result, counts });
     });
 
     app.delete("/deletLiberyanBooks/:id", async (req, res) => {
       const { id } = req.params;
       const result = await bookCollections.deleteOne({ _id: new ObjectId(id) });
+      const result2 = await orderCollections.deleteOne({"book._id": new ObjectId(id)});
       res.send(result);
     });
 
@@ -154,7 +164,7 @@ async function run() {
       res.status(200).send(result);
     });
 
-    app.get("/allbooks", async (req, res) => {
+    app.get("/allBooksCollections", async (req, res) => {
       const { one, tow, limit, skip, search } = req.query;
 
       const query = {
@@ -185,7 +195,8 @@ async function run() {
         .toArray();
 
       const counts = await bookCollections.countDocuments(query);
-
+      console.log(result);
+      
       res.status(200).send({ result, counts });
     });
 
@@ -214,10 +225,9 @@ async function run() {
         .toArray();
       res.send(result);
     });
-
     app.get("/liberin-add-books", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
-      // console.log("this is midel Wear EMail", req.verifey_email, email);
+      const { email, limit, skip } = req.query;
+      // console.log("this is midel Wear EMail", req.verifey_email, email);&limit=${limit}&skip=${skip
 
       if (email !== req.verifey_email) {
         return res.status(403).send({
@@ -225,20 +235,31 @@ async function run() {
         });
       }
       const query = { "sellerInfo.sellerEmail": email };
-      const result = await bookCollections.find(query).toArray();
-      res.send(result);
+      const result = await bookCollections
+        .find(query)
+        .limit(Number(limit))
+        .skip(Number(skip))
+        .toArray();
+      const counts = await bookCollections.countDocuments(query);
+
+      res.send({ result, counts });
     });
 
     app.get("/allcustomer-order", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
-      // console.log(email);
+      const { email, limit, skip } = req.query;
+      // console.log(email);&limit=${limit}&skip=${skip}
       if (email !== req.verifey_email) {
         return res.status(403).send({
           message: "Forbident Access",
         });
       }
-      const result = await orderCollections.find().toArray();
-      res.send(result);
+      const result = await orderCollections
+        .find()
+        .limit(Number(limit))
+        .skip(Number(skip))
+        .toArray();
+      const counts = await orderCollections.countDocuments();
+      res.send({ result, counts });
     });
 
     app.patch("/updetOrder/:id", async (req, res) => {
@@ -275,7 +296,7 @@ async function run() {
     });
 
     app.get("/orderlist", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
+      const { email, limit, skip } = req.query;
       // console.log(email, req.verifey_email);
       if (email !== req.verifey_email) {
         return res.status(403).send({
@@ -286,8 +307,12 @@ async function run() {
       const result = await orderCollections
         .find({ email: email })
         .sort({ orderTime: 1 })
+        .limit(Number(limit))
+        .skip(Number(skip))
         .toArray();
-      res.send(result);
+
+      const counts = await orderCollections.countDocuments({ email: email });
+      res.send({ result, counts });
     });
 
     app.delete("/deletbook/:id", async (req, res) => {
@@ -422,7 +447,7 @@ async function run() {
     });
 
     app.get("/paymentChack", verifeyFirebase, async (req, res) => {
-      const { email } = req.query;
+      const { email, limit, skip } = req.query;
       // console.log(email);
       if (email !== req.verifey_email) {
         return res.status(403).send({
@@ -431,8 +456,14 @@ async function run() {
       }
       const result = await paymentCollections
         .find({ customerEmail: email })
+        .limit(Number(limit))
+        .skip(Number(skip))
         .toArray();
-      res.send(result);
+
+      const counts = await paymentCollections.countDocuments({
+        customerEmail: email,
+      });
+      res.send({ result, counts });
     });
 
     // Send a ping to confirm a successful connection
