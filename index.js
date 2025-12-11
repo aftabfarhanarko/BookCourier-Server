@@ -105,23 +105,23 @@ async function run() {
     // WhiseList Saved Data in Database
     app.post("/whiseListerInfo", verifeyFirebase, async (req, res) => {
       const { email, id } = req.query;
+
       if (email !== req.verifey_email) {
-        return res.status(403).send({
-          message: "Forbident Access",
-        });
+        return res.status(403).send({ message: "Forbident Access" });
       }
+
       const data = req.body;
-      const query = { bookId: id };
 
-      const isExgiesed = await whiseListCollections.findOne(query);
-      console.log(isExgiesed);
+      // Check same user + same book
+      const query = { bookId: id, wishlisterEmail: email };
+      const isExisted = await whiseListCollections.findOne(query);
 
-      if (isExgiesed) {
+      if (isExisted) {
         return res.send({
-          message: "Book Allready Saved your WhisList",
+          message: "Book already saved in your Wishlist",
         });
       }
-
+      // Insert new wishlist entry
       const result = await whiseListCollections.insertOne(data);
       res.send(result);
     });
@@ -139,21 +139,50 @@ async function run() {
       res.send(result);
     });
 
-    // ai khna kaj korta silam
-    app.get("/whisListdata", async (req, res) => {
-      const { email, id } = req.query;
+    //  whislist get
+    app.get("/findthisBookSavedornot", async (req, res) => {
+      try {
+        const { email, id } = req.query;
 
-      const checkBook = await whiseListCollections.findOne({ bookId: id });
+        if (!email || !id) {
+          return res.send({ saved: false });
+        }
 
-      const myEmail = { wishlisterEmail: email };
-      const counts = await whiseListCollections.countDocuments(myEmail);
-      const result = await whiseListCollections.find(myEmail).toArray();
+        const query = { bookId: id, wishlisterEmail: email };
+        const result = await whiseListCollections.findOne(query);
 
-      res.send({
-        checkBookId: !!checkBook,
-        counts,
-        result,
-      });
+        if (result) {
+          return res.send({ saved: true, data: result });
+        } else {
+          return res.send({ saved: false });
+        }
+      } catch (error) {
+        res.send({ saved: false });
+      }
+    });
+
+    // Counts whislist navbar
+    app.get("/whisListdataGetANndswr", async (req, res) => {
+      const { email } = req.query;
+      const query = { wishlisterEmail: email };
+      const result = await whiseListCollections.countDocuments(query);
+      res.send(result);
+    });
+
+    // Display Whish list in Dashbord
+    app.get("/customeraddyourwhishlist", verifeyFirebase, async (req, res) => {
+      const { email } = req.query;
+      console.log(email);
+
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
+      const result = await whiseListCollections
+        .find({ wishlisterEmail: email })
+        .toArray();
+      res.send(result);
     });
 
     // Updeat Profile
