@@ -126,7 +126,20 @@ async function run() {
       res.send(result);
     });
 
-    // whisListdata?email=${user?.email
+    app.delete("/deletWhishList/:id", verifeyFirebase, async (req, res) => {
+      const { email } = req.query;
+      if (email !== req.verifey_email) {
+        return res.status(403).send({
+          message: "Forbident Access",
+        });
+      }
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+      const result = await whiseListCollections.deleteOne(query);
+      res.send(result);
+    });
+
+    // ai khna kaj korta silam
     app.get("/whisListdata", async (req, res) => {
       const { email, id } = req.query;
 
@@ -137,7 +150,7 @@ async function run() {
       const result = await whiseListCollections.find(myEmail).toArray();
 
       res.send({
-        checkBookId: !!checkBook, 
+        checkBookId: !!checkBook,
         counts,
         result,
       });
@@ -154,7 +167,7 @@ async function run() {
         });
       }
 
-      console.log(limit, skip);
+      // console.log(limit, skip);
 
       const result = await customerCollections
         .find()
@@ -187,9 +200,9 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/allbooks", verifeyFirebase, async (req, res) => {
+    app.get("/allbooks", async (req, res) => {
       const { email, limit, skip } = req.query;
-      console.log(email, req.verifey_email);
+      // console.log(order);
 
       if (email !== req.verifey_email) {
         return res.status(403).send({
@@ -244,14 +257,18 @@ async function run() {
     app.post("/book", async (req, res) => {
       const data = req.body;
       data.creatAt = new Date().toISOString();
-      console.log(data);
+      // console.log(data);
 
       const result = await bookCollections.insertOne(data);
       res.status(200).send(result);
     });
 
+    // Sort er kaj baki
     app.get("/allBooksCollections", async (req, res) => {
-      const { one, tow, limit, skip, search } = req.query;
+      const { one, tow, limit, skip, search, order } = req.query;
+
+      console.log(order);
+      const pricelist = { price_sell: Number(order) };
 
       const query = {
         publisher: one,
@@ -261,6 +278,12 @@ async function run() {
       if (search) {
         query.title = { $regex: search, $options: "i" };
       }
+
+      // if (order) {
+      //   query.price_sell = Number(order);
+      // .sort(pricelist)
+      // }
+
       const result = await bookCollections
         .find(query)
         .project({
@@ -290,12 +313,12 @@ async function run() {
       const { id } = req.params;
       const result = await bookCollections.findOne({ _id: new ObjectId(id) });
       res.send(result);
-      console.log(id);
+      // console.log(id);/
     });
 
     app.get("/catogryfinde", async (req, res) => {
       const { category } = req.query;
-      console.log(category);
+      // console.log(category);
 
       const result = await bookCollections
         .find({ category: category })
@@ -366,7 +389,7 @@ async function run() {
         { _id: new ObjectId(id) },
         seter
       );
-      console.log(seter, id);
+      // console.log(seter, id);
       res.send(result);
     });
 
@@ -437,7 +460,7 @@ async function run() {
     // Payment Releted Api Creat
     app.post("/creat-payment-session", async (req, res) => {
       const pymentInfo = req.body;
-      console.log(pymentInfo);
+      // console.log(pymentInfo);
 
       const session = await stripe.checkout.sessions.create({
         line_items: [
@@ -471,9 +494,9 @@ async function run() {
     });
     app.patch("/success-payment", async (req, res) => {
       const { sessionID } = req.query;
-      console.log(sessionID);
+      // console.log(sessionID);
       const seccion = await stripe.checkout.sessions.retrieve(sessionID);
-      console.log(seccion);
+      // console.log(seccion);
       if (seccion.payment_status) {
         const trakingId = seccion.metadata.trakingId;
 
@@ -518,7 +541,7 @@ async function run() {
 
         if (seccion.payment_status === "paid") {
           const result = await paymentCollections.insertOne(paymentSuccessInfo);
-          console.log(result);
+          // console.log(result);
 
           res.send({
             modifyBook: result,
