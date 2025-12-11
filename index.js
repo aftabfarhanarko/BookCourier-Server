@@ -72,7 +72,7 @@ async function run() {
     const reviewCustomerCollections = myDb.collection("reviewCustomer");
     const whiseListCollections = myDb.collection("whiseListBook");
 
-    // Role Api
+// Role Api
     app.get("/role-findnow", async (req, res) => {
       const { email } = req.query;
       const result = await customerCollections.findOne({ email: email });
@@ -80,6 +80,30 @@ async function run() {
 
       res.send(result.role);
     });
+
+    app.get("/admindeshborderdata", async (req,res) => {
+      const allBookCount = await bookCollections.countDocuments();
+      const userCounts = await customerCollections.countDocuments();
+      const paymentCount  = await paymentCollections.countDocuments();
+      const query = {ordered_Status:"delivered"};
+      const deliveryCount  = await orderCollections.countDocuments(query);
+      const query2 = {ordered_Status:"pending"}
+      const pendingBooks = await orderCollections.countDocuments(query2);
+      res.send({
+        allBookCount,
+        userCounts,
+        paymentCount,
+        deliveryCount,
+        pendingBooks
+      })
+    })
+
+
+
+
+
+
+    
 
     // user review set Apis
     app.post("/reviewUserNow", async (req, res) => {
