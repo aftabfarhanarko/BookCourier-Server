@@ -156,6 +156,32 @@ async function run() {
       });
     });
 
+    // Updeat Profile
+    app.patch(
+      "/updeatCustomerProfile/:id",
+      verifeyFirebase,
+      async (req, res) => {
+        const { email } = req.query;
+        if (email !== req.verifey_email) {
+          return res.status(403).send({
+            message: "Forbident Access",
+          });
+        }
+        const updet = req.body;
+        const { id } = req.params;
+        console.log(updet, id);
+
+        const seter = {
+          $set: updet,
+        };
+        const result = await customerCollections.updateOne(
+          { _id: new ObjectId(id) },
+          seter
+        );
+        res.send(result);
+      }
+    );
+
     // Admin Releted Api
     app.get("/alluser-data", verifeyFirebase, async (req, res) => {
       const { email, limit, skip } = req.query;
