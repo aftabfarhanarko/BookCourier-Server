@@ -72,7 +72,7 @@ async function run() {
     const reviewCustomerCollections = myDb.collection("reviewCustomer");
     const whiseListCollections = myDb.collection("whiseListBook");
 
-// Role Api
+    // Role Api
     app.get("/role-findnow", async (req, res) => {
       const { email } = req.query;
       const result = await customerCollections.findOne({ email: email });
@@ -81,29 +81,85 @@ async function run() {
       res.send(result.role);
     });
 
-    app.get("/admindeshborderdata", async (req,res) => {
+    app.get("/admindeshborderdata", async (req, res) => {
       const allBookCount = await bookCollections.countDocuments();
       const userCounts = await customerCollections.countDocuments();
-      const paymentCount  = await paymentCollections.countDocuments();
-      const query = {ordered_Status:"delivered"};
-      const deliveryCount  = await orderCollections.countDocuments(query);
-      const query2 = {ordered_Status:"pending"}
+      const paymentCount = await paymentCollections.countDocuments();
+      const query = { ordered_Status: "delivered" };
+      const deliveryCount = await orderCollections.countDocuments(query);
+      const query2 = { ordered_Status: "pending" };
       const pendingBooks = await orderCollections.countDocuments(query2);
       res.send({
         allBookCount,
         userCounts,
         paymentCount,
         deliveryCount,
-        pendingBooks
+        pendingBooks,
+      });
+    });
+
+    app.get("/userdashbordData", async (req, res) => {
+      const { email } = req.query;
+      const totalOrder = await orderCollections.countDocuments({
+        email: email,
+      });
+      const totalDeliveryuserBook = await orderCollections.countDocuments({
+        email: email,
+        ordered_Status: "delivered",
+      });
+      const totalpendinguserBook = await orderCollections.countDocuments({
+        email: email,
+        ordered_Status: "pending",
+      });
+      const totalshippeduserBook = await orderCollections.countDocuments({
+        email: email,
+        ordered_Status: "shipped",
+      });
+      const totalBooksRented = await orderCollections.countDocuments({
+        email: email,
+        payment_status: "unpaid",
+      });
+
+      res.send({
+        totalOrder,
+        totalBooksRented,
+        totalDeliveryuserBook,
+        totalpendinguserBook,
+        totalshippeduserBook,
+      });
+    });
+    // { status: 'Delivered', value: stats.booksDelivered, color: '#10b981' },
+    //   { status: 'Shipped', value: stats.booksShipped, color: '#3b82f6' },
+    //   { status: 'Pending', value: stats.pendingOrders, color: '#f59e0b' }
+
+    app.get("/liberienDeshbord", async (req, res) => {
+      const { email } = req.query;
+      const totalDeliverylibrarianBook = await orderCollections.countDocuments({
+        "book.sellerInfo.sellerEmail": email,
+        ordered_Status: "delivered",
+      });
+      const totalPendinglibrarianBook = await orderCollections.countDocuments({
+        "book.sellerInfo.sellerEmail": email,
+        ordered_Status: "pending",
+      });
+      const totalShippedlibrarianBook = await orderCollections.countDocuments({
+        "book.sellerInfo.sellerEmail": email,
+        ordered_Status: "shipped",
+      });
+      const totalLibrarianAddBooks = await bookCollections.countDocuments({
+        "sellerInfo.sellerEmail": email,
+      });
+      const unpidePayment = await customerCollections.countDocuments({
+        "book.sellerInfo.sellerEmail":email, payment_status:"unpaid"
       })
-    })
-
-
-
-
-
-
-    
+      res.send({
+        totalDeliverylibrarianBook,
+        totalPendinglibrarianBook,
+        totalShippedlibrarianBook,
+        totalLibrarianAddBooks,
+        unpidePayment
+      })
+    });
 
     // user review set Apis
     app.post("/reviewUserNow", async (req, res) => {
