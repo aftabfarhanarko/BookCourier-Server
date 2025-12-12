@@ -78,9 +78,94 @@ async function run() {
       const result = await customerCollections.findOne({ email: email });
       // console.log(result.role);
 
-      res.send(result.role);
+      res.send(result);
     });
 
+    // User Creat Time
+    // books: 245
+
+    app.get("/userCreatTimeALlfind", async (req, res) => {
+      try {
+        // 1️⃣ Get daily user counts
+        const userResult = await customerCollections
+          .aggregate([
+            {
+              $addFields: {
+                crestAtDate: { $dateFromString: { dateString: "$crestAt" } },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  year: { $year: "$crestAtDate" },
+                  month: { $month: "$crestAtDate" },
+                  day: { $dayOfMonth: "$crestAtDate" },
+                },
+                userCount: { $sum: 1 },
+              },
+            },
+          ])
+          .toArray();
+
+        // 2️⃣ Get daily book counts
+        const bookResult = await bookCollections
+          .aggregate([
+            {
+              $addFields: {
+                createdAtDate: { $dateFromString: { dateString: "$creatAt" } },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  year: { $year: "$createdAtDate" },
+                  month: { $month: "$createdAtDate" },
+                  day: { $dayOfMonth: "$createdAtDate" },
+                },
+                bookCount: { $sum: 1 },
+              },
+            },
+          ])
+          .toArray();
+
+        // 3️⃣ Merge the two arrays by date
+        const map = new Map();
+
+        userResult.forEach((item) => {
+          const { year, month, day } = item._id;
+          const date = `${year}-${month.toString().padStart(2, "0")}-${day
+            .toString()
+            .padStart(2, "0")}`;
+          map.set(date, { date, userCount: item.userCount, bookCount: 0 });
+        });
+
+        bookResult.forEach((item) => {
+          const { year, month, day } = item._id;
+          const date = `${year}-${month.toString().padStart(2, "0")}-${day
+            .toString()
+            .padStart(2, "0")}`;
+          if (map.has(date)) {
+            map.get(date).bookCount = item.bookCount;
+          } else {
+            map.set(date, { date, userCount: 0, bookCount: item.bookCount });
+          }
+        });
+
+        // 4️⃣ Convert map to array and sort by date
+        const finalResult = Array.from(map.values()).sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+
+        // console.log(finalResult);
+        
+        res.json(finalResult);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+      }
+    });
+
+    
     app.get("/admindeshborderdata", async (req, res) => {
       const allBookCount = await bookCollections.countDocuments();
       const userCounts = await customerCollections.countDocuments();
@@ -333,9 +418,9 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/allbooks", async (req, res) => {
+    app.get("/allbooksdatafind", verifeyFirebase, async (req, res) => {
       const { email, limit, skip } = req.query;
-      // console.log(order);
+      //  console.log("All Books Manez", email);
 
       if (email !== req.verifey_email) {
         return res.status(403).send({
@@ -396,7 +481,7 @@ async function run() {
       res.status(200).send(result);
     });
 
-    // Sort er kaj baki
+    // Sort er kaj CLear
     app.get("/allBooksCollections", async (req, res) => {
       const { one, tow, limit, skip, search, sort } = req.query;
       console.log(sort);
@@ -409,7 +494,6 @@ async function run() {
         query.title = { $regex: search, $options: "i" };
       }
 
-      // ⭐ Dynamic sort object
       let sortQuery = {};
       if (sort === "low") {
         sortQuery.price_sell = 1; // ascending
