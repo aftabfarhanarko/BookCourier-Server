@@ -128,9 +128,6 @@ async function run() {
         totalshippeduserBook,
       });
     });
-    // { status: 'Delivered', value: stats.booksDelivered, color: '#10b981' },
-    //   { status: 'Shipped', value: stats.booksShipped, color: '#3b82f6' },
-    //   { status: 'Pending', value: stats.pendingOrders, color: '#f59e0b' }
 
     app.get("/liberienDeshbord", async (req, res) => {
       const { email } = req.query;
@@ -150,15 +147,16 @@ async function run() {
         "sellerInfo.sellerEmail": email,
       });
       const unpidePayment = await customerCollections.countDocuments({
-        "book.sellerInfo.sellerEmail":email, payment_status:"unpaid"
-      })
+        "book.sellerInfo.sellerEmail": email,
+        payment_status: "unpaid",
+      });
       res.send({
         totalDeliverylibrarianBook,
         totalPendinglibrarianBook,
         totalShippedlibrarianBook,
         totalLibrarianAddBooks,
-        unpidePayment
-      })
+        unpidePayment,
+      });
     });
 
     // user review set Apis
@@ -400,11 +398,8 @@ async function run() {
 
     // Sort er kaj baki
     app.get("/allBooksCollections", async (req, res) => {
-      const { one, tow, limit, skip, search, order } = req.query;
-
-      console.log(order);
-      const pricelist = { price_sell: Number(order) };
-
+      const { one, tow, limit, skip, search, sort } = req.query;
+      console.log(sort);
       const query = {
         publisher: one,
         availability_status: tow,
@@ -414,10 +409,13 @@ async function run() {
         query.title = { $regex: search, $options: "i" };
       }
 
-      // if (order) {
-      //   query.price_sell = Number(order);
-      // .sort(pricelist)
-      // }
+      // ⭐ Dynamic sort object
+      let sortQuery = {};
+      if (sort === "low") {
+        sortQuery.price_sell = 1; // ascending
+      } else if (sort === "high") {
+        sortQuery.price_sell = -1; // descending
+      }
 
       const result = await bookCollections
         .find(query)
@@ -425,6 +423,7 @@ async function run() {
           image: 1,
           title: 1,
           price_mrp: 1,
+          price_sell: 1,
           author: 1,
           language: 1,
           category: 1,
@@ -434,12 +433,13 @@ async function run() {
           page_count: 1,
           rating_avg: 1,
         })
+        .sort(sortQuery)
         .limit(Number(limit))
         .skip(Number(skip))
         .toArray();
 
       const counts = await bookCollections.countDocuments(query);
-      console.log(result);
+      // console.log(result);
 
       res.status(200).send({ result, counts });
     });
