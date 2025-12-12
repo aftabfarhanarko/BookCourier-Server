@@ -81,9 +81,7 @@ async function run() {
       res.send(result);
     });
 
-    // User Creat Time
-    // books: 245
-
+    // All Book and User Creat Deliey COunt
     app.get("/userCreatTimeALlfind", async (req, res) => {
       try {
         // 1️⃣ Get daily user counts
@@ -157,7 +155,7 @@ async function run() {
         );
 
         // console.log(finalResult);
-        
+
         res.json(finalResult);
       } catch (error) {
         console.error(error);
@@ -165,7 +163,83 @@ async function run() {
       }
     });
 
+    // Resent Book Order COllections Find Admin Deshbord
+    app.get("/resentBooksUserOrderCollections", async (req, res) => {
+      try {
+        // 1️⃣ Latest user
+        const latestUser = await customerCollections
+          .find({})
+          .sort({ crestAt: -1 })
+          .limit(1)
+          .toArray();
+        const userName = latestUser[0]?.displayName || null;
+
+        // 2️⃣ Latest book
+        const latestBook = await bookCollections
+          .find({})
+          .sort({ creatAt: -1 })
+          .limit(1)
+          .toArray();
+        const bookTitle = latestBook[0]?.title || null;
+
+        // 3️⃣ Latest delivered order
+        const latestOrder = await orderCollections
+          .find({ ordered_Status: "delivered" })
+          .sort({ orderTime: -1 })
+          .limit(1)
+          .toArray();
+        const orderInfo = latestOrder[0] || null;
+
+        // 4️⃣ Latest payment
+        const latestPayment = await paymentCollections
+          .find({})
+          .sort({ paidAt: -1 })
+          .limit(1)
+          .toArray();
+        const paymentInfo = latestPayment[0] || null;
+
+        // 5️⃣ Return combined array
+        const result = [
+          { type: "latestUser", displayName: userName },
+          { type: "latestBook", title: bookTitle },
+          { type: "latestDeliveredOrder", order: orderInfo },
+          { type: "latestPayment", payment: paymentInfo },
+        ];
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+      }
+    });
+
+    // Admin Dashbord
+    app.get("/tatalPaymentAllBooks", async (req, res) => {
+      try {
+        const result = await paymentCollections
+          .aggregate([
+            {
+              $group: {
+                _id: null,
+                totalAmount: { $sum: "$amount" }, // sum all amounts
+              },
+            },
+          ])
+          .toArray();
+
+        const totalAmount = result[0]?.totalAmount || 0;
+        const totalUsers = await customerCollections.countDocuments();
+        const totalPayment = await paymentCollections.countDocuments();
+        const totalBooks = await bookCollections.countDocuments();
+        const totalOrders = await orderCollections.countDocuments();
+        res.json({ totalAmount, totalUsers, totalPayment ,totalBooks,totalOrders});
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+      }
+    });
     
+
     app.get("/admindeshborderdata", async (req, res) => {
       const allBookCount = await bookCollections.countDocuments();
       const userCounts = await customerCollections.countDocuments();
