@@ -232,13 +232,18 @@ async function run() {
         const totalPayment = await paymentCollections.countDocuments();
         const totalBooks = await bookCollections.countDocuments();
         const totalOrders = await orderCollections.countDocuments();
-        res.json({ totalAmount, totalUsers, totalPayment ,totalBooks,totalOrders});
+        res.json({
+          totalAmount,
+          totalUsers,
+          totalPayment,
+          totalBooks,
+          totalOrders,
+        });
       } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error", error });
       }
     });
-    
 
     app.get("/admindeshborderdata", async (req, res) => {
       const allBookCount = await bookCollections.countDocuments();
@@ -249,11 +254,17 @@ async function run() {
       const query2 = { ordered_Status: "pending" };
       const pendingBooks = await orderCollections.countDocuments(query2);
       const query3 = { ordered_Status: "shipped" };
-      const  shippedCount = await orderCollections.countDocuments(query3);
-      const paymentUnpaid = await orderCollections.countDocuments({payment_status:"unpaid"})
+      const shippedCount = await orderCollections.countDocuments(query3);
+      const paymentUnpaid = await orderCollections.countDocuments({
+        payment_status: "unpaid",
+      });
 
-      const publishBooks = await bookCollections.countDocuments({publisher:"Publish"})
-      const  unpublishBooks = await bookCollections.countDocuments({publisher:"UnPublish"})
+      const publishBooks = await bookCollections.countDocuments({
+        publisher: "Publish",
+      });
+      const unpublishBooks = await bookCollections.countDocuments({
+        publisher: "UnPublish",
+      });
       res.send({
         allBookCount,
         userCounts,
@@ -263,10 +274,11 @@ async function run() {
         shippedCount,
         paymentUnpaid,
         publishBooks,
-        unpublishBooks
+        unpublishBooks,
       });
     });
 
+    // User Dashbord
     app.get("/userdashbordData", async (req, res) => {
       const { email } = req.query;
       const totalOrder = await orderCollections.countDocuments({
@@ -297,6 +309,77 @@ async function run() {
         totalshippeduserBook,
       });
     });
+
+    app.get("/userOrderDeliey", async (req, res) => {
+      try {
+        const { email } = req.query;
+
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
+
+        const result = await orderCollections
+          .aggregate([
+            // 1️⃣ email filter
+            {
+              $match: { email },
+            },
+
+            // 2️⃣ ISO string → Date
+            {
+              $addFields: {
+                orderDateObj: {
+                  $toDate: "$orderTime",
+                },
+              },
+            },
+
+            // 3️⃣ Date → YYYY-MM-DD
+            {
+              $addFields: {
+                orderDate: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$orderDateObj",
+                  },
+                },
+              },
+            },
+
+            // 4️⃣ group by date
+            {
+              $group: {
+                _id: "$orderDate",
+                totalOrders: { $sum: 1 },
+              },
+            },
+
+            // 5️⃣ response format
+            {
+              $project: {
+                _id: 0,
+                day: "$_id",
+                totalOrders: 1,
+              },
+            },
+
+            // 6️⃣ sort by date
+            {
+              $sort: { day: 1 },
+            },
+          ])
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    app.get("/userDeleyPaymentCOunts", async (req,res) => {
+      const {email} = req.query;
+    })
 
     app.get("/liberienDeshbord", async (req, res) => {
       const { email } = req.query;
