@@ -470,17 +470,89 @@ async function run() {
     });
 
     // Libraine
+    app.get("/liberienPaymentSummary", async (req, res) => {
+      try {
+        const { email } = req.query;
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
+
+        const result = await paymentCollections
+          .aggregate([
+            // 1️⃣ seller email match
+            {
+              $match: {
+                sellerEmail: email,
+              },
+            },
+
+            // 2️⃣ paidAt → yyyy-mm-dd
+            {
+              $addFields: {
+                paymentDate: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: { $toDate: "$paidAt" },
+                  },
+                },
+              },
+            },
+
+            // 3️⃣ group by date
+            {
+              $group: {
+                _id: "$paymentDate",
+                dailyAmount: { $sum: "$amount" }, // amount is Number ✅
+                totalPayments: { $sum: 1 },
+              },
+            },
+
+            // 4️⃣ format output
+            {
+              $project: {
+                _id: 0,
+                date: "$_id",
+                dailyAmount: 1,
+                totalPayments: 1,
+              },
+            },
+
+            // 5️⃣ sort by date
+            { $sort: { date: 1 } },
+          ])
+          .toArray();
+        // console.log("Total Payment ", result);
+
+        // 6️⃣ grand total amount (all days)
+        const grandTotal = result.reduce(
+          (sum, item) => sum + item.dailyAmount,
+          0
+        );
+        // console.log(grandTotal);
+
+        res.json({
+          dailyPayments: result,
+          totalAmount: grandTotal,
+        });
+      } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+      }
+    });
+
     app.get("/liberienAddBooksPrice", async (req, res) => {
       try {
         const { email } = req.query;
-        if (!email)
+
+        if (!email) {
           return res.status(400).json({ message: "Email is required" });
+        }
 
         const result = await bookCollections
           .aggregate([
-            {
-              $match: { "sellerInfo.sellerEmail": email },
-            },
+            // Match books by seller email
+            { $match: { "sellerInfo.sellerEmail": email } },
+
+            // Convert createdAt to date only (YYYY-MM-DD)
             {
               $addFields: {
                 dateOnly: {
@@ -491,12 +563,16 @@ async function run() {
                 },
               },
             },
+
+            // Group by date and count books
             {
               $group: {
                 _id: "$dateOnly",
                 booksAdded: { $sum: 1 },
               },
             },
+
+            // Format the output
             {
               $project: {
                 _id: 0,
@@ -504,18 +580,20 @@ async function run() {
                 count: "$booksAdded",
               },
             },
+
+            // Sort by date ascending
             { $sort: { date: 1 } },
           ])
           .toArray();
 
-        // console.log(result);
         res.json(result);
       } catch (error) {
-        // console.error(error);
-        res.status(500).json({ message: "Server error", error });
+        console.error("Error in /liberienAddBooksPrice:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
       }
     });
 
+    
     // user review set Apis
     app.post("/reviewUserNow", async (req, res) => {
       const data = req.body;
@@ -951,7 +1029,7 @@ async function run() {
     // Payment Releted Api Creat
     app.post("/creat-payment-session", async (req, res) => {
       const pymentInfo = req.body;
-      // console.log(pymentInfo);
+      console.log(pymentInfo);
 
       const session = await stripe.checkout.sessions.create({
         line_items: [
@@ -975,6 +1053,7 @@ async function run() {
           email: pymentInfo?.customerEmail,
           trakingId: pymentInfo?.trakingId,
           amount: pymentInfo?.bookPrice,
+          sellerEmail: pymentInfo?.sellerEmail,
         },
 
         success_url: `${process.env.URL}/deshbord/pymentSuccess?session_id={CHECKOUT_SESSION_ID}`,
@@ -983,6 +1062,7 @@ async function run() {
 
       res.send({ url: session.url });
     });
+
     app.patch("/success-payment", async (req, res) => {
       const { sessionID } = req.query;
       // console.log(sessionID);
@@ -1018,11 +1098,14 @@ async function run() {
           seter
         );
 
+        console.log("GHUIYGI", seccion.metadata);
+
         const paymentSuccessInfo = {
           amount: seccion.amount_total / 100,
           currency: seccion.currency,
           customerEmail: seccion.customer_email,
           bookId: seccion.metadata.bookId,
+          sellerEmail: seccion.metadata.sellerEmail,
           bookName: seccion.metadata.bookName,
           transactionId: seccion.payment_intent,
           paymentStatus: seccion.payment_status,
