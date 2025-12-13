@@ -248,12 +248,22 @@ async function run() {
       const deliveryCount = await orderCollections.countDocuments(query);
       const query2 = { ordered_Status: "pending" };
       const pendingBooks = await orderCollections.countDocuments(query2);
+      const query3 = { ordered_Status: "shipped" };
+      const  shippedCount = await orderCollections.countDocuments(query3);
+      const paymentUnpaid = await orderCollections.countDocuments({payment_status:"unpaid"})
+
+      const publishBooks = await bookCollections.countDocuments({publisher:"Publish"})
+      const  unpublishBooks = await bookCollections.countDocuments({publisher:"UnPublish"})
       res.send({
         allBookCount,
         userCounts,
         paymentCount,
         deliveryCount,
         pendingBooks,
+        shippedCount,
+        paymentUnpaid,
+        publishBooks,
+        unpublishBooks
       });
     });
 
