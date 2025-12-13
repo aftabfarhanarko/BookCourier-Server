@@ -310,12 +310,12 @@ async function run() {
       });
     });
 
-    app.get("/userOrderDeliey", async (req, res) => {
+    app.get("/userOrderDeliey", verifeyFirebase, async (req, res) => {
       try {
         const { email } = req.query;
 
-        if (!email) {
-          return res.status(400).json({ message: "Email is required" });
+        if (email !== req.verifey_email) {
+          return res.status(403).send({ message: "Forbident Access" });
         }
 
         const result = await orderCollections
@@ -377,9 +377,67 @@ async function run() {
       }
     });
 
-    app.get("/userDeleyPaymentCOunts", async (req,res) => {
-      const {email} = req.query;
-    })
+    app.get("/userDeleyPaymentCOunts", verifeyFirebase, async (req, res) => {
+      try {
+        const { email } = req.query;
+        if (email !== req.verifey_email) {
+          return res.status(403).send({ message: "Forbident Access" });
+        }
+
+        const result = await paymentCollections
+          .aggregate([
+            // 1️⃣ Email filter
+            { $match: { customerEmail: email } },
+
+            // 2️⃣ Convert paidAt → YYYY-MM-DD
+            {
+              $addFields: {
+                paidDate: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$paidAt" },
+                },
+              },
+            },
+
+            // 3️⃣ Group by date → totalPayments and totalAmount
+            {
+              $group: {
+                _id: "$paidDate",
+                totalPayments: { $sum: 1 },
+                totalAmount: { $sum: "$amount" }, // <--- correct field name
+              },
+            },
+
+            // 4️⃣ Response format
+            {
+              $project: {
+                _id: 0,
+                day: "$_id",
+                totalPayments: 1,
+                totalAmount: 1,
+              },
+            },
+
+            // 5️⃣ Sort by day
+            { $sort: { day: 1 } },
+          ])
+          .toArray();
+        //  console.log(result);
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res
+          .status(500)
+          .json({ message: "Internal server error", error: error.message });
+      }
+    });
+
+    app.get("/orderUserLetest6Data", async (req, res) => {
+      const { email } = req.query;
+      const query = { email: email };
+      const result = await orderCollections.find(query).limit(6).toArray();
+      res.send(result);
+    });
 
     app.get("/liberienDeshbord", async (req, res) => {
       const { email } = req.query;
@@ -409,6 +467,53 @@ async function run() {
         totalLibrarianAddBooks,
         unpidePayment,
       });
+    });
+
+    // Libraine
+    app.get("/liberienAddBooksPrice", async (req, res) => {
+      try {
+        const { email } = req.query;
+        if (!email)
+          return res.status(400).json({ message: "Email is required" });
+
+        const result = await bookCollections
+          .aggregate([
+            {
+              $match: { "sellerInfo.sellerEmail": email },
+            },
+            {
+              $addFields: {
+                dateOnly: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: { $toDate: "$creatAt" },
+                  },
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$dateOnly",
+                booksAdded: { $sum: 1 },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                date: "$_id",
+                count: "$booksAdded",
+              },
+            },
+            { $sort: { date: 1 } },
+          ])
+          .toArray();
+
+        // console.log(result);
+        res.json(result);
+      } catch (error) {
+        // console.error(error);
+        res.status(500).json({ message: "Server error", error });
+      }
     });
 
     // user review set Apis
