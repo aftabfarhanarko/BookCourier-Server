@@ -593,7 +593,19 @@ async function run() {
       }
     });
 
-    
+    app.patch("/updeatLibraineOneBooksData/:id", async (req, res) => {
+      const { id } = req.params;
+      const data = req.body;
+      //  console.log(id,data);
+      const query = { _id: new ObjectId(id) };
+      const seter = {
+        $set: data,
+      };
+      const result = await bookCollections.updateOne(query, seter);
+      res.send(result);
+      //  console.log(result);
+    });
+
     // user review set Apis
     app.post("/reviewUserNow", async (req, res) => {
       const data = req.body;
@@ -685,7 +697,7 @@ async function run() {
     // Display Whish list in Dashbord
     app.get("/customeraddyourwhishlist", verifeyFirebase, async (req, res) => {
       const { email } = req.query;
-      console.log(email);
+      // console.log(email);
 
       if (email !== req.verifey_email) {
         return res.status(403).send({
@@ -711,7 +723,7 @@ async function run() {
         }
         const updet = req.body;
         const { id } = req.params;
-        console.log(updet, id);
+        // console.log(updet, id);
 
         const seter = {
           $set: updet,
@@ -834,7 +846,7 @@ async function run() {
     // Sort er kaj CLear
     app.get("/allBooksCollections", async (req, res) => {
       const { one, tow, limit, skip, search, sort } = req.query;
-      console.log(sort);
+      // console.log(sort);
       const query = {
         publisher: one,
         availability_status: tow,
@@ -873,7 +885,7 @@ async function run() {
         .toArray();
 
       const counts = await bookCollections.countDocuments(query);
-      // console.log(result);
+      // console.log(counts);
 
       res.status(200).send({ result, counts });
     });
@@ -898,9 +910,11 @@ async function run() {
     app.get("/limetCard", async (req, res) => {
       const result = await bookCollections
         .find()
-        .sort({ creatAt: 1 })
+        .sort({ creatAt: -1 })
         .limit(6)
         .toArray();
+      // console.log(result);
+
       res.send(result);
     });
     app.get("/liberin-add-books", verifeyFirebase, async (req, res) => {
@@ -1029,7 +1043,7 @@ async function run() {
     // Payment Releted Api Creat
     app.post("/creat-payment-session", async (req, res) => {
       const pymentInfo = req.body;
-      console.log(pymentInfo);
+      // console.log(pymentInfo);
 
       const session = await stripe.checkout.sessions.create({
         line_items: [
@@ -1098,7 +1112,7 @@ async function run() {
           seter
         );
 
-        console.log("GHUIYGI", seccion.metadata);
+        // console.log("GHUIYGI", seccion.metadata);
 
         const paymentSuccessInfo = {
           amount: seccion.amount_total / 100,
@@ -1152,9 +1166,9 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    console.log(
-      `Pinged your deployment. You successfully connected to MongoDB! Date ${new Date().toISOString()}`
-    );
+    // console.log(
+    //   `Pinged your deployment. You successfully connected to MongoDB! Date ${new Date().toISOString()}`
+    // );
   } finally {
   }
 }
